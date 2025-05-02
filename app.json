@@ -24,6 +24,12 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "aafad975-3aa7-4740-bbd9-3ca0abeeb306"
+      }
+    },
+    "owner": "fastfithub"
   }
 }
