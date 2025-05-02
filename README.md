@@ -1,4 +1,4 @@
-# FastFitHubAi2.0
+# FastFitHubAi
 Open-source AI fitness app with personalized workouts, nutrition, and community features.
 
 ## Setup
