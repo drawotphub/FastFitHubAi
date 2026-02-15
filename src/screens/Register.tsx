@@ -11,40 +11,70 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
-export default function LoginScreen() {
+export default function RegisterScreen() {
   const navigation = useNavigation();
+  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = async () => {
-    if (!email || !password) {
+  const validateForm = () => {
+    if (!fullName || !email || !password || !confirmPassword) {
       Alert.alert('Error', 'Please fill in all fields');
-      return;
+      return false;
     }
+
+    if (password !== confirmPassword) {
+      Alert.alert('Error', 'Passwords do not match');
+      return false;
+    }
+
+    if (password.length < 6) {
+      Alert.alert('Error', 'Password must be at least 6 characters');
+      return false;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      Alert.alert('Error', 'Please enter a valid email address');
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleRegister = async () => {
+    if (!validateForm()) return;
 
     setLoading(true);
     try {
       // TODO: Integrate with Firebase authentication
-      console.log('Login attempt:', { email, password });
-      
-      // Simulate login delay
+      console.log('Register attempt:', { fullName, email, password });
+
+      // Simulate registration delay
       setTimeout(() => {
         setLoading(false);
-        // Navigate to Dashboard on successful login
-        navigation.reset({
-          index: 0,
-          routes: [{ name: 'Dashboard' }],
-        });
+        Alert.alert('Success', 'Account created successfully!', [
+          {
+            text: 'OK',
+            onPress: () => {
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'Login' }],
+              });
+            },
+          },
+        ]);
       }, 1500);
     } catch (error) {
       setLoading(false);
-      Alert.alert('Login Failed', 'Please check your credentials and try again');
+      Alert.alert('Registration Failed', 'Please try again later');
     }
   };
 
-  const handleRegister = () => {
-    navigation.navigate('Register');
+  const handleLogin = () => {
+    navigation.goBack();
   };
 
   return (
@@ -53,12 +83,25 @@ export default function LoginScreen() {
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.logo}>⚡</Text>
-          <Text style={styles.title}>FastFitHub AI</Text>
-          <Text style={styles.subtitle}>Your Personal Fitness Coach</Text>
+          <Text style={styles.title}>Create Account</Text>
+          <Text style={styles.subtitle}>Join FastFitHub AI Today</Text>
         </View>
 
         {/* Form */}
         <View style={styles.form}>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Full Name</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter your full name"
+              placeholderTextColor="#999"
+              autoCapitalize="words"
+              value={fullName}
+              onChangeText={setFullName}
+              editable={!loading}
+            />
+          </View>
+
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Email Address</Text>
             <TextInput
@@ -77,7 +120,7 @@ export default function LoginScreen() {
             <Text style={styles.label}>Password</Text>
             <TextInput
               style={styles.input}
-              placeholder="Enter your password"
+              placeholder="Create a password"
               placeholderTextColor="#999"
               secureTextEntry
               value={password}
@@ -86,47 +129,47 @@ export default function LoginScreen() {
             />
           </View>
 
-          {/* Login Button */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Confirm Password</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Confirm your password"
+              placeholderTextColor="#999"
+              secureTextEntry
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              editable={!loading}
+            />
+          </View>
+
+          {/* Register Button */}
           <TouchableOpacity
-            style={[styles.button, styles.loginButton, loading && styles.buttonDisabled]}
-            onPress={handleLogin}
+            style={[styles.button, styles.registerButton, loading && styles.buttonDisabled]}
+            onPress={handleRegister}
             disabled={loading}
           >
             {loading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.buttonText}>Login</Text>
+              <Text style={styles.buttonText}>Create Account</Text>
             )}
           </TouchableOpacity>
-
-          {/* Forgot Password Link */}
-          <TouchableOpacity>
-            <Text style={styles.forgotPassword}>Forgot Password?</Text>
-          </TouchableOpacity>
         </View>
 
-        {/* Divider */}
-        <View style={styles.divider}>
-          <View style={styles.line} />
-          <Text style={styles.dividerText}>or</Text>
-          <View style={styles.line} />
+        {/* Terms */}
+        <View style={styles.termsContainer}>
+          <Text style={styles.termsText}>
+            By creating an account, you agree to our{' '}
+            <Text style={styles.termsLink}>Terms of Service</Text> and{' '}
+            <Text style={styles.termsLink}>Privacy Policy</Text>
+          </Text>
         </View>
 
-        {/* Social Login */}
-        <View style={styles.socialButtons}>
-          <TouchableOpacity style={styles.socialButton}>
-            <Text style={styles.socialButtonText}>Google</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.socialButton}>
-            <Text style={styles.socialButtonText}>Apple</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Register Link */}
+        {/* Login Link */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Don't have an account? </Text>
-          <TouchableOpacity onPress={handleRegister}>
-            <Text style={styles.registerLink}>Sign Up</Text>
+          <Text style={styles.footerText}>Already have an account? </Text>
+          <TouchableOpacity onPress={handleLogin}>
+            <Text style={styles.loginLink}>Sign In</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -191,7 +234,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 10,
   },
-  loginButton: {
+  registerButton: {
     backgroundColor: '#0a7ea4',
   },
   buttonDisabled: {
@@ -202,43 +245,17 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFF',
   },
-  forgotPassword: {
-    fontSize: 14,
-    color: '#0a7ea4',
-    marginTop: 12,
-    textAlign: 'center',
+  termsContainer: {
+    marginBottom: 20,
   },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 30,
-  },
-  line: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#333333',
-  },
-  dividerText: {
-    marginHorizontal: 15,
+  termsText: {
+    fontSize: 12,
     color: '#999999',
-    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 18,
   },
-  socialButtons: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 30,
-  },
-  socialButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderWidth: 1,
-    borderColor: '#333333',
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  socialButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
+  termsLink: {
+    color: '#0a7ea4',
     fontWeight: '600',
   },
   footer: {
@@ -250,7 +267,7 @@ const styles = StyleSheet.create({
     color: '#999999',
     fontSize: 14,
   },
-  registerLink: {
+  loginLink: {
     color: '#0a7ea4',
     fontSize: 14,
     fontWeight: '600',
