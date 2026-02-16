@@ -1,11 +1,12 @@
 {
   "expo": {
-    "name": "fastfithubai",
+    "name": "FastFitHub AI",
     "slug": "fastfithubai",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
+    "scheme": "fastfithubai",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",
@@ -13,22 +14,40 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.fastfithub.ai",
+      "buildNumber": "1"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.fastfithub.ai",
+      "versionCode": 1
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
     },
+    "plugins": [
+      "expo-router"
+    ],
     "extra": {
       "eas": {
         "projectId": "aafad975-3aa7-4740-bbd9-3ca0abeeb306"
+      },
+      "router": {
+        "origin": false
       }
+    },
+    "runtimeVersion": "1.0.0",
+    "updates": {
+      "url": "https://u.expo.dev/aafad975-3aa7-4740-bbd9-3ca0abeeb306",
+      "enabled": false,
+      "checkOnLaunch": "never",
+      "fallbackToCacheTimeout": 0
     },
     "owner": "fastfithub"
   }
