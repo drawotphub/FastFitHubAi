@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,192 +7,264 @@ import {
   TouchableOpacity,
   FlatList,
   Dimensions,
+  RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
+import { useHealth } from '../contexts/HealthContext';
+import { useWallet } from '../contexts/WalletContext';
+import { useAuth } from '../contexts/AuthContext';
+import { Card } from '../components/Card';
 
 const { width } = Dimensions.get('window');
 
-interface Workout {
-  id: string;
-  name: string;
-  duration: number;
-  calories: number;
-  intensity: 'Low' | 'Medium' | 'High';
-  date: string;
-}
-
 export default function DashboardScreen() {
-  const [workouts, setWorkouts] = useState<Workout[]>([
-    {
-      id: '1',
-      name: 'Morning Run',
-      duration: 30,
-      calories: 350,
-      intensity: 'High',
-      date: 'Today',
-    },
-    {
-      id: '2',
-      name: 'Gym Session',
-      duration: 45,
-      calories: 420,
-      intensity: 'High',
-      date: 'Yesterday',
-    },
-    {
-      id: '3',
-      name: 'Yoga',
-      duration: 20,
-      calories: 120,
-      intensity: 'Low',
-      date: '2 days ago',
-    },
-  ]);
+  const { todayMetrics, updateMetrics, activities, meals } = useHealth();
+  const { wallet, getTotalRewards } = useWallet();
+  const { user } = useAuth();
+  const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const [stats] = useState({
-    totalCalories: 890,
-    totalWorkouts: 3,
-    totalDuration: 95,
-    weeklyGoal: 2000,
-  });
+  useEffect(() => {
+    // Initialize wallet if not exists
+    if (!wallet) {
+      initializeWallet();
+    }
+  }, []);
 
-  const getIntensityColor = (intensity: string) => {
-    switch (intensity) {
-      case 'High':
-        return '#FF6B6B';
-      case 'Medium':
-        return '#FFA500';
-      case 'Low':
-        return '#4CAF50';
-      default:
-        return '#0a7ea4';
+  const initializeWallet = async () => {
+    // TODO: Initialize wallet from context
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      // Simulate data refresh
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      
+      // Update metrics with mock data
+      await updateMetrics({
+        steps: Math.floor(Math.random() * 10000),
+        heartRate: 60 + Math.floor(Math.random() * 40),
+      });
+    } catch (error) {
+      console.error('Refresh failed:', error);
+    } finally {
+      setRefreshing(false);
     }
   };
 
-  const renderWorkoutCard = ({ item }: { item: Workout }) => (
-    <View style={styles.workoutCard}>
-      <View style={styles.workoutHeader}>
-        <View>
-          <Text style={styles.workoutName}>{item.name}</Text>
-          <Text style={styles.workoutDate}>{item.date}</Text>
+  const getStepsPercentage = () => {
+    const dailyGoal = 10000;
+    return Math.min((todayMetrics.steps / dailyGoal) * 100, 100);
+  };
+
+  const getCaloriesPercentage = () => {
+    const dailyGoal = 2000;
+    return Math.min((todayMetrics.calories / dailyGoal) * 100, 100);
+  };
+
+  const getWaterPercentage = () => {
+    const dailyGoal = 2000;
+    return Math.min((todayMetrics.water / dailyGoal) * 100, 100);
+  };
+
+  const renderMetricCard = (
+    title: string,
+    value: string | number,
+    unit: string,
+    percentage: number,
+    color: string
+  ) => (
+    <Card style={styles.metricCard}>
+      <View style={styles.metricHeader}>
+        <Text style={styles.metricTitle}>{title}</Text>
+        <View style={[styles.percentageBadge, { backgroundColor: color }]}>
+          <Text style={styles.percentageText}>{Math.round(percentage)}%</Text>
         </View>
+      </View>
+      <Text style={styles.metricValue}>{value}</Text>
+      <Text style={styles.metricUnit}>{unit}</Text>
+      <View style={styles.progressBar}>
         <View
           style={[
-            styles.intensityBadge,
-            { backgroundColor: getIntensityColor(item.intensity) },
+            styles.progressFill,
+            { width: `${percentage}%`, backgroundColor: color },
           ]}
-        >
-          <Text style={styles.intensityText}>{item.intensity}</Text>
-        </View>
+        />
       </View>
-      <View style={styles.workoutStats}>
-        <View style={styles.statItem}>
-          <Text style={styles.statLabel}>Duration</Text>
-          <Text style={styles.statValue}>{item.duration}m</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statLabel}>Calories</Text>
-          <Text style={styles.statValue}>{item.calories}</Text>
-        </View>
-      </View>
-    </View>
+    </Card>
   );
 
+  const renderRecentActivity = () => {
+    const recentActivities = activities.slice(-3).reverse();
+    
+    if (recentActivities.length === 0) {
+      return (
+        <Card style={styles.emptyCard}>
+          <Text style={styles.emptyText}>No activities yet. Start moving!</Text>
+        </Card>
+      );
+    }
+
+    return recentActivities.map((activity) => (
+      <Card key={activity.id} style={styles.activityCard}>
+        <View style={styles.activityContent}>
+          <View>
+            <Text style={styles.activityName}>
+              {activity.type.charAt(0).toUpperCase() + activity.type.slice(1)}
+            </Text>
+            <Text style={styles.activityDetails}>
+              {activity.duration} min • {activity.calories} cal
+            </Text>
+          </View>
+          <View style={styles.activityBadge}>
+            <Text style={styles.activityBadgeText}>
+              {activity.intensity.toUpperCase()}
+            </Text>
+          </View>
+        </View>
+      </Card>
+    ));
+  };
+
+  const renderRecentMeals = () => {
+    const recentMeals = meals.slice(-3).reverse();
+    
+    if (recentMeals.length === 0) {
+      return (
+        <Card style={styles.emptyCard}>
+          <Text style={styles.emptyText}>No meals logged yet.</Text>
+        </Card>
+      );
+    }
+
+    return recentMeals.map((meal) => (
+      <Card key={meal.id} style={styles.mealCard}>
+        <View style={styles.mealContent}>
+          <View>
+            <Text style={styles.mealName}>{meal.name}</Text>
+            <Text style={styles.mealDetails}>
+              {meal.mealType.charAt(0).toUpperCase() + meal.mealType.slice(1)} • {meal.calories} cal
+            </Text>
+          </View>
+          <Text style={styles.mealCalories}>{meal.calories}</Text>
+        </View>
+      </Card>
+    ));
+  };
+
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={styles.container}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+    >
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.greeting}>Welcome Back! 👋</Text>
-        <Text style={styles.date}>Today's Progress</Text>
+        <Text style={styles.greeting}>Welcome back, {user?.fullName}!</Text>
+        <Text style={styles.date}>{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</Text>
       </View>
 
-      {/* Stats Cards */}
-      <View style={styles.statsContainer}>
-        <View style={[styles.statCard, { backgroundColor: '#1A1A1A' }]}>
-          <Text style={styles.statCardLabel}>Calories Burned</Text>
-          <Text style={styles.statCardValue}>{stats.totalCalories}</Text>
-          <Text style={styles.statCardUnit}>kcal</Text>
-        </View>
-        <View style={[styles.statCard, { backgroundColor: '#1A1A1A' }]}>
-          <Text style={styles.statCardLabel}>Workouts</Text>
-          <Text style={styles.statCardValue}>{stats.totalWorkouts}</Text>
-          <Text style={styles.statCardUnit}>sessions</Text>
-        </View>
-      </View>
-
-      {/* Weekly Progress */}
+      {/* Key Metrics */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Weekly Goal</Text>
-        <View style={styles.progressContainer}>
-          <View style={styles.progressBar}>
-            <View
-              style={[
-                styles.progressFill,
-                { width: `${(stats.totalCalories / stats.weeklyGoal) * 100}%` },
-              ]}
-            />
-          </View>
-          <Text style={styles.progressText}>
-            {stats.totalCalories} / {stats.weeklyGoal} kcal
-          </Text>
+        <Text style={styles.sectionTitle}>Today's Metrics</Text>
+        <View style={styles.metricsGrid}>
+          {renderMetricCard(
+            'Steps',
+            todayMetrics.steps.toLocaleString(),
+            'steps',
+            getStepsPercentage(),
+            '#0a7ea4'
+          )}
+          {renderMetricCard(
+            'Calories',
+            todayMetrics.calories,
+            'kcal',
+            getCaloriesPercentage(),
+            '#22c55e'
+          )}
+          {renderMetricCard(
+            'Water',
+            todayMetrics.water,
+            'ml',
+            getWaterPercentage(),
+            '#3b82f6'
+          )}
+          {renderMetricCard(
+            'Heart Rate',
+            todayMetrics.heartRate,
+            'bpm',
+            Math.min((todayMetrics.heartRate / 100) * 100, 100),
+            '#ef4444'
+          )}
         </View>
+      </View>
+
+      {/* Rewards Section */}
+      {wallet && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Your Rewards</Text>
+          <Card style={styles.rewardCard}>
+            <View style={styles.rewardContent}>
+              <View>
+                <Text style={styles.rewardLabel}>HCH Balance</Text>
+                <Text style={styles.rewardValue}>{wallet.balance.toFixed(2)}</Text>
+              </View>
+              <View style={styles.rewardDivider} />
+              <View>
+                <Text style={styles.rewardLabel}>USD Value</Text>
+                <Text style={styles.rewardValue}>${wallet.usdValue.toFixed(2)}</Text>
+              </View>
+            </View>
+          </Card>
+        </View>
+      )}
+
+      {/* Recent Activities */}
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Recent Activities</Text>
+          <TouchableOpacity>
+            <Text style={styles.viewAll}>View All</Text>
+          </TouchableOpacity>
+        </View>
+        {renderRecentActivity()}
+      </View>
+
+      {/* Recent Meals */}
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Recent Meals</Text>
+          <TouchableOpacity>
+            <Text style={styles.viewAll}>View All</Text>
+          </TouchableOpacity>
+        </View>
+        {renderRecentMeals()}
       </View>
 
       {/* Quick Actions */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Quick Actions</Text>
-        <View style={styles.actionsContainer}>
+        <View style={styles.actionsGrid}>
           <TouchableOpacity style={styles.actionButton}>
             <Text style={styles.actionIcon}>🏃</Text>
-            <Text style={styles.actionLabel}>Start Workout</Text>
+            <Text style={styles.actionLabel}>Log Activity</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionButton}>
-            <Text style={styles.actionIcon}>🍎</Text>
+            <Text style={styles.actionIcon}>🍽️</Text>
             <Text style={styles.actionLabel}>Log Meal</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionButton}>
-            <Text style={styles.actionIcon}>📊</Text>
-            <Text style={styles.actionLabel}>View Stats</Text>
+            <Text style={styles.actionIcon}>💧</Text>
+            <Text style={styles.actionLabel}>Log Water</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionButton}>
-            <Text style={styles.actionIcon}>⚙️</Text>
-            <Text style={styles.actionLabel}>Settings</Text>
+            <Text style={styles.actionIcon}>😴</Text>
+            <Text style={styles.actionLabel}>Log Sleep</Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* Recent Workouts */}
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Recent Workouts</Text>
-          <TouchableOpacity>
-            <Text style={styles.viewAll}>View All</Text>
-          </TouchableOpacity>
-        </View>
-        <FlatList
-          scrollEnabled={false}
-          data={workouts}
-          renderItem={renderWorkoutCard}
-          keyExtractor={(item) => item.id}
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
-        />
-      </View>
-
-      {/* AI Recommendations */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>AI Recommendations</Text>
-        <View style={styles.recommendationCard}>
-          <Text style={styles.recommendationTitle}>💡 Personalized Workout Plan</Text>
-          <Text style={styles.recommendationText}>
-            Based on your activity, we recommend a 45-minute strength training session today.
-          </Text>
-          <TouchableOpacity style={styles.recommendationButton}>
-            <Text style={styles.recommendationButtonText}>View Plan</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Spacing */}
-      <View style={{ height: 30 }} />
+      <View style={styles.spacer} />
     </ScrollView>
   );
 }
@@ -200,190 +272,208 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F0F0F',
+    backgroundColor: '#f5f5f5',
   },
   header: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingTop: 20,
-    paddingBottom: 30,
+    paddingBottom: 10,
   },
   greeting: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#11181c',
     marginBottom: 4,
   },
   date: {
     fontSize: 14,
-    color: '#999999',
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 20,
-    gap: 12,
-    marginBottom: 30,
-  },
-  statCard: {
-    flex: 1,
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  statCardLabel: {
-    fontSize: 12,
-    color: '#999999',
-    marginBottom: 8,
-  },
-  statCardValue: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#0a7ea4',
-    marginBottom: 4,
-  },
-  statCardUnit: {
-    fontSize: 12,
-    color: '#666666',
+    color: '#687076',
   },
   section: {
-    paddingHorizontal: 20,
-    marginBottom: 30,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    fontWeight: '600',
+    color: '#11181c',
   },
   viewAll: {
     fontSize: 14,
     color: '#0a7ea4',
-    fontWeight: '600',
+    fontWeight: '500',
   },
-  progressContainer: {
+  metricsGrid: {
     gap: 12,
   },
+  metricCard: {
+    padding: 16,
+    marginBottom: 12,
+  },
+  metricHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  metricTitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#687076',
+  },
+  percentageBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  percentageText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  metricValue: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#11181c',
+    marginBottom: 4,
+  },
+  metricUnit: {
+    fontSize: 12,
+    color: '#687076',
+    marginBottom: 12,
+  },
   progressBar: {
-    height: 8,
-    backgroundColor: '#1A1A1A',
-    borderRadius: 4,
+    height: 6,
+    backgroundColor: '#e5e7eb',
+    borderRadius: 3,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#0a7ea4',
-    borderRadius: 4,
+    borderRadius: 3,
   },
-  progressText: {
+  rewardCard: {
+    padding: 16,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+  },
+  rewardContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  rewardLabel: {
     fontSize: 12,
-    color: '#999999',
+    color: '#687076',
+    marginBottom: 4,
   },
-  actionsContainer: {
+  rewardValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#0a7ea4',
+  },
+  rewardDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: '#e5e7eb',
+  },
+  activityCard: {
+    padding: 12,
+    marginBottom: 8,
+  },
+  activityContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  activityName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#11181c',
+    marginBottom: 4,
+  },
+  activityDetails: {
+    fontSize: 12,
+    color: '#687076',
+  },
+  activityBadge: {
+    backgroundColor: '#0a7ea4',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  activityBadgeText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  mealCard: {
+    padding: 12,
+    marginBottom: 8,
+  },
+  mealContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  mealName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#11181c',
+    marginBottom: 4,
+  },
+  mealDetails: {
+    fontSize: 12,
+    color: '#687076',
+  },
+  mealCalories: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#22c55e',
+  },
+  emptyCard: {
+    padding: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyText: {
+    fontSize: 14,
+    color: '#687076',
+    textAlign: 'center',
+  },
+  actionsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
   },
   actionButton: {
-    width: (width - 52) / 2,
-    backgroundColor: '#1A1A1A',
-    borderRadius: 12,
+    width: (width - 40) / 2,
     paddingVertical: 16,
+    paddingHorizontal: 12,
+    backgroundColor: '#fff',
+    borderRadius: 12,
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
   },
   actionIcon: {
-    fontSize: 32,
+    fontSize: 28,
+    marginBottom: 8,
   },
   actionLabel: {
     fontSize: 12,
-    color: '#FFFFFF',
-    fontWeight: '600',
+    fontWeight: '500',
+    color: '#11181c',
+    textAlign: 'center',
   },
-  workoutCard: {
-    backgroundColor: '#1A1A1A',
-    borderRadius: 12,
-    padding: 16,
-  },
-  workoutHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  workoutName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginBottom: 4,
-  },
-  workoutDate: {
-    fontSize: 12,
-    color: '#999999',
-  },
-  intensityBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  intensityText: {
-    fontSize: 12,
-    color: '#FFFFFF',
-    fontWeight: '600',
-  },
-  workoutStats: {
-    flexDirection: 'row',
-    gap: 20,
-  },
-  statItem: {
-    flex: 1,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#999999',
-    marginBottom: 4,
-  },
-  statValue: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#0a7ea4',
-  },
-  separator: {
-    height: 12,
-  },
-  recommendationCard: {
-    backgroundColor: '#1A1A1A',
-    borderRadius: 12,
-    padding: 16,
-    borderLeftWidth: 4,
-    borderLeftColor: '#0a7ea4',
-  },
-  recommendationTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginBottom: 8,
-  },
-  recommendationText: {
-    fontSize: 14,
-    color: '#999999',
-    lineHeight: 20,
-    marginBottom: 12,
-  },
-  recommendationButton: {
-    backgroundColor: '#0a7ea4',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  recommendationButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
+  spacer: {
+    height: 40,
   },
 });
