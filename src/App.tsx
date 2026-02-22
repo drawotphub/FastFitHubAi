@@ -17,6 +17,9 @@ import ActivitiesScreen from './screens/Activities';
 import NutritionScreen from './screens/Nutrition';
 import WalletScreen from './screens/Wallet';
 import ProfileScreen from './screens/Profile';
+import AICoachScreen from './screens/AICoach';
+import WearablesScreen from './screens/Wearables';
+import MealPlansScreen from './screens/MealPlans';
 
 // Types
 import { RootStackParamList } from './types';
@@ -108,6 +111,33 @@ function AppStack() {
           title: 'Profile',
           tabBarLabel: 'Profile',
           tabBarIcon: ({ color }) => <TabIcon name="👤" color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="AICoach"
+        component={AICoachScreen}
+        options={{
+          title: 'AI Coach',
+          tabBarLabel: 'Coach',
+          tabBarIcon: ({ color }) => <TabIcon name="🤖" color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="Wearables"
+        component={WearablesScreen}
+        options={{
+          title: 'Wearables',
+          tabBarLabel: 'Devices',
+          tabBarIcon: ({ color }) => <TabIcon name="⌚" color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="MealPlans"
+        component={MealPlansScreen}
+        options={{
+          title: 'Meal Plans',
+          tabBarLabel: 'Meals',
+          tabBarIcon: ({ color }) => <TabIcon name="🍽️" color={color} />,
         }}
       />
     </Tab.Navigator>
