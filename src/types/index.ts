@@ -129,6 +129,9 @@ export type RootStackParamList = {
   Nutrition: undefined;
   Wallet: undefined;
   Profile: undefined;
+  AICoach: undefined;
+  Wearables: undefined;
+  MealPlans: undefined;
   ActivityDetail: { activityId: string };
   MealDetail: { mealId: string };
   TransactionDetail: { transactionId: string };

@@ -3,6 +3,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { ActivityIndicator, View } from 'react-native';
+import { glassTheme } from './theme/glassTheme';
 
 // Providers
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -47,25 +48,25 @@ function AppStack() {
     <Tab.Navigator
       screenOptions={{
         headerShown: true,
-        tabBarActiveTintColor: '#0a7ea4',
-        tabBarInactiveTintColor: '#687076',
+        tabBarActiveTintColor: glassTheme.colors.primary,
+        tabBarInactiveTintColor: glassTheme.colors.textMuted,
         tabBarStyle: {
-          borderTopColor: '#e5e7eb',
+          borderTopColor: glassTheme.glass.light.border,
           borderTopWidth: 1,
-          backgroundColor: '#fff',
+          backgroundColor: glassTheme.colors.background,
           paddingBottom: 8,
           paddingTop: 8,
         },
         headerStyle: {
-          backgroundColor: '#fff',
-          borderBottomColor: '#e5e7eb',
+          backgroundColor: glassTheme.colors.background,
+          borderBottomColor: glassTheme.glass.light.border,
           borderBottomWidth: 1,
         },
         headerTitleStyle: {
           fontWeight: '600',
-          color: '#11181c',
+          color: glassTheme.colors.text,
         },
-        headerTintColor: '#0a7ea4',
+        headerTintColor: glassTheme.colors.primary,
       }}
     >
       <Tab.Screen
@@ -145,7 +146,7 @@ function AppStack() {
 }
 
 function TabIcon({ name, color }: { name: string; color: string }) {
-  return <View style={{ fontSize: 20, opacity: color === '#0a7ea4' ? 1 : 0.5 }}>{name}</View>;
+  return <View style={{ opacity: color === glassTheme.colors.primary ? 1 : 0.5 }}>{name}</View>;
 }
 
 function RootNavigator() {
@@ -153,8 +154,8 @@ function RootNavigator() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
-        <ActivityIndicator size="large" color="#0a7ea4" />
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: glassTheme.colors.background }}>
+        <ActivityIndicator size="large" color={glassTheme.colors.primary} />
       </View>
     );
   }
